@@ -1,0 +1,17 @@
+#ai-response {
+    height: 500px;
+    /* width: 1000px; */
+    overflow: scroll;
+}
+
+input.ai-actors {
+    padding: 1.1em !important;
+    width: 87%;
+}
+button.ai-actors {
+    width: 10%;
+}
+
+.ai-actors {
+    margin: 8px 0px 8px 8px;
+}

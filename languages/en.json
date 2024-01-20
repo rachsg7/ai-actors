@@ -1,0 +1,13 @@
+{
+    "AI-ACTOR": {
+      "create_actor": "Create AI Actor",
+      "send_message": "Send message",
+      "make_actor": "Make Actor",
+      "settings": {
+          "api_key": {
+            "Name": "API Key",
+            "Hint": "You need to provide an API key to ChatGPT for this module to work."
+          }
+        }
+    }
+  }
