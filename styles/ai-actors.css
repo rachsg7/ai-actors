@@ -15,3 +15,32 @@ button.ai-actors {
 .ai-actors {
     margin: 8px 0px 8px 8px;
 }
+
+.monospace {
+    font-family: "Courier New", "Lucida", monospace;
+}
+
+hr {
+    border-bottom: 1px solid #782e22;
+    margin: 1em 0;
+}
+
+.ability-block {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.block {
+    padding: 1em;
+    flex-direction: column;
+}
+
+.sm-block {
+    font-weight: bold;
+    margin-bottom: .5em;
+}
+
+h2.actions {
+    border-top: 1em;
+}

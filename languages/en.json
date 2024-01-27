@@ -3,6 +3,7 @@
       "create_actor": "Create AI Actor",
       "send_message": "Send message",
       "make_actor": "Make Actor",
+      "type_a_description": "Type a description of a character",
       "settings": {
           "api_key": {
             "Name": "API Key",

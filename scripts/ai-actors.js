@@ -43,8 +43,13 @@ class aiActor {
         this.lastUpdate = lastUpdate;
     }
 
-    static setNPC() {
-        this.npc = {};
+    static setNPC(object) {
+        this.npc = object;
+        this.errors = {};
+    }
+
+    static setBonus(object) {
+        this.bonus = object;
         this.errors = {};
     }
 
@@ -52,18 +57,7 @@ class aiActor {
         return llmLib.callLlm(message);
     }
 
-    static parseMessage(message) {
-        let aiActor = {};
-
-        aiActor.name = this.getName(message);
-        aiActor.attributes = this.getAttributes(message);
-        aiActor.abilities = this.getAbilities(message);
-        aiActor.details = this.getDetails(message);
-        aiActor.traits = this.getLanguages(message);
-
-        return aiActor;
-    }
-
+    // TODO: Maybe delete this? Maybe it's useful?
     static findString(message, regex, index=1) {
         let match = message.match(new RegExp(regex, "ig"));
         if(match.length > 0) {
@@ -74,127 +68,310 @@ class aiActor {
         }
     }
 
-    static getName(message) {
-        let name;
-        const nameRegex = /\#\#\#\s(Name):\n(\w+\s+\w+)/;
-
-        name = this.findString(message, nameRegex, 2);
-        return name;
+    static getArrayString(array) {
+        let string = "";
+        for(let i=0; i<array.length; i++) {
+            string += array[i];
+            if(i != array.length - 1) {
+                string += ", ";
+            }
+        }
+        return string;
     }
 
-    // static getSize(message) {}
-    // static getCreatureType(message) {}
-    // static getSpeed(message) {}
+    static getObjectString(object) {
+        let string = "";
+        for(const key in object) {
+            let capitalized = key.charAt(0).toUpperCase() + key.slice(1);
+            string += "<strong>" + capitalized + ":</strong> " + object[key] + "<br>";
+        }
+        return string;
+    }
 
-    static getAbilities(message) {
-        let abilities = {};
-        abilities.str = {};
-        abilities.dex = {};
-        abilities.con = {};
-        abilities.int = {};
-        abilities.wis = {};
-        abilities.cha = {};
+    static makePretty(ai_object) {
+        // These are dynamic elements that may be used in an actor
+        let senses = "", languages = "", ci = "", di = "", dr = "", dv = "", movement = "", actions = "", size, cr;
 
-        const abilitiesRegex = /\|\s+((\d+)\s+\([-+]\d+\)\s)\|\s+((\d+)\s+\([-+]\d+\)\s)\|\s+((\d+)\s+\([-+]\d+\)\s)\|\s+((\d+)\s+\([-+]\d+\)\s)\|\s+((\d+)\s+\([-+]\d+\)\s)\|\s+((\d+)\s+\([-+]\d+\)\s)\|/;
-
-        abilities.str.value = this.findString(message, abilitiesRegex, 2);
-        // TODO: add or check proficiencies? 
-        abilities.dex.value = this.findString(message, abilitiesRegex, 4);
-        abilities.con.value = this.findString(message, abilitiesRegex, 6);
-        abilities.int.value = this.findString(message, abilitiesRegex, 8);
-        abilities.wis.value = this.findString(message, abilitiesRegex, 10);
-        abilities.cha.value = this.findString(message, abilitiesRegex, 12);
-
-        return abilities;
-    } // STR, DEX, CON, INT, WIS, CHA
-
-    static getAttributes(message) {
-        let attributes = {};
-        attributes.ac = {};
-        attributes.movement = {};
-        attributes.senses = {};
-        attributes.hp = {};
-
-        const armorRegex = /\*\*(Armor Class|AC)\*\*\s+(\d+)\s*(\(([\s\w]+)\))?/;
-        const speedRegex = /\*\*Speed\*\*\s+(\d+)/;
-        const sensesRegex = /\*\*Senses\*\*\s+(\w+\s+)(\d+)\s+(\w+.)/;
-        const hpRegex = /\*\*(Hit Points|HP)\*\*\s+(\d+)\s+\((\w+\d+)\)/;
-        
-        // Armor Check
-        let armorMatches = message.match(new RegExp(armorRegex, "ig"));
-        if(armorMatches.length > 0)
+        // These values could be undefined
+        if(!!ai_object[0]?.system?.attributes?.senses)
         {
-            attributes.ac.armor = armorMatches[0].match(new RegExp(armorRegex, "i"))[2];
-            if(armorMatches[0].match(new RegExp(armorRegex, "i"))[3]) {
-                attributes.ac.equippedArmor = armorMatches[0].match(new RegExp(armorRegex, "i"))[3];
-            }
-            else {
-                attributes.errors.armor = "missing";
-            }
-        }
-        else { 
-            attributes.errors.ac = "missing"; 
+            senses = this.getObjectString(ai_object[0].system.attributes.senses);
         }
 
-        // Speed Check
-        let speedMatches = message.match(new RegExp(speedRegex, "ig"));
-        if(speedMatches.length > 0) {
-            attributes.movement.walk = speedMatches[0].match(new RegExp(speedRegex, "i"))[1];
-        }
-        else {
-            attributes.errors.speed = "missing";
+        if(!!ai_object[0]?.system?.traits?.ci?.value)
+        {
+            ci = this.getArrayString(ai_object[0].system.traits.ci.value);
         }
 
-        // Senses
-        let sense = this.findString(message, sensesRegex, 1);
-        sense = sense.toLowerCase().trim();
-        switch(sense) {
-            case 'darkvision':
-                attributes.senses.darkvision = this.findString(message, sensesRegex, 2);
+        if(!!ai_object[0]?.system?.traits?.languages?.value) {
+            languages = this.getArrayString(ai_object[0].system.traits.languages.value);
+        }
+
+        if(!!ai_object[0]?.system?.traits?.di?.value) {
+            di = this.getArrayString(ai_object[0].system.traits.di.value);
+        }
+
+        if(!!ai_object[0]?.system?.traits?.dr?.value) {
+            dr = this.getArrayString(ai_object[0].system.traits.dr.value);
+        }
+        
+        if(!!ai_object[0]?.system?.traits?.dv?.value) {
+            dv = this.getArrayString(ai_object[0].system.traits.dv.value);
+        }
+
+        if(!!ai_object[0]?.system?.attributes?.movement) {
+            movement = this.getObjectString(ai_object[0].system.attributes.movement);
+        }
+
+        (ai_object[1].bonus).forEach((element) => {
+            actions += this.getObjectString(element) + "<br>";
+        })
+
+        switch(ai_object[0].system.traits.size) {
+            case 'tiny':
+                size = "Tiny";
+                break;
+            case 'sm':
+                size = 'Small';
+                break;
+            case 'med':
+                size = 'Medium';
+                break;
+            case 'lrg':
+                size = 'Large';
+                break;
+            case 'huge':
+                size = 'Huge';
+                break;
+            case 'grg':
+                size = 'Gargantuan';
                 break;
             default:
+                size = ai_object[0].system.traits.size;
                 break;
         }
 
-        // Hit Points
-        attributes.hp.max = this.findString(message, hpRegex, 2);
-        attributes.hp.value = attributes.hp.max;
-        attributes.hp.formula = this.findString(message, hpRegex, 3);
+        /* TODO: Localization 
+                 Spells */
+        let html = `
+        <h1>${ ai_object[0].name }</h1>
+        <p><i>${ size } ${ ai_object[0].system.details.type }, ${ ai_object[0].system.details.alignment }</i> </p>
+        <hr>
+        <p><strong>Armor Class:</strong> ${ai_object[0].system.attributes.ac}</p>
+        <p><strong>Hit Points:</strong> ${ ai_object[0].system.attributes.hp.value } (${ ai_object[0].system.attributes.hp.formula })</p>
+        <p>${ movement } </p>
+        <hr>
+        <div class="ability-block">
+            <div class="ability-block block">
+                <div class="sm-block">STR</div>
+                <div class="">${ai_object[0].system.abilities.str.value}</div>
+            </div>
+            <div class="ability-block block">
+                <div class="sm-block">DEX</div>
+                <div>${ai_object[0].system.abilities.dex.value}</div>
+            </div>
+            <div class="ability-block block">
+                <div class="sm-block">CON</div>
+                <div>${ai_object[0].system.abilities.con.value}</div>
+            </div>
+            <div class="ability-block block">
+                <div class="sm-block">INT</div>
+                <div>${ai_object[0].system.abilities.int.value}</div>
+            </div>
+            <div class="ability-block block">
+                <div class="sm-block">WIS</div>
+                <div>${ai_object[0].system.abilities.wis.value}</div>
+            </div>
+            <div class="ability-block block">
+                <div class="sm-block">CHA</div>
+                <div>${ai_object[0].system.abilities.cha.value}</div>
+            </div>
+        </div>
+        <hr>
+        <p>${ senses }</p>
+        <p><strong>Languages:</strong> ${ languages }\n</p>
+        <p><strong>CR:</strong> ${ ai_object[0].system.details.cr }\n</p>
+        <p><strong>Damage Immunities:</strong> ${ di }</p>
+        <p><strong>Damage Resistances:</strong> ${ dr }</p>
+        <p><strong>Damage Vulnerabilities:</strong> ${ dv }</p>
+        <p><strong>Condition Immunities:</strong> ${ ci }</p>
+        <h2 class="actions">Actions</h2>
+        <i>Due to the nature of AI, these may not be exactly the items created since they may or may not exist.</i>
+        <p>${ actions }</p>
+        <p><strong>Biography:</strong> ${ai_object[0].system.details.biography.value}\n<br></p>
+        `;
+        return html;
+    }
 
-        return attributes;
-    } // ac {armor: base:} {equippedArmor: name}, attunement {}. movement {}, senses {}, spellcasting: 
+    static getItemList(array) {
+        let actionsItemsList = [];
+        let itemsPack = game.packs.get("dnd5e.items");
+        let monsterFeaturePack = game.packs.get("dnd5e.monsterfeatures");
+        let classFeaturePack = game.packs.get("dnd5e.classfeatures");
+        let spellsPack = game.packs.get("dnd5e.spells");
 
-    // static getBonuses(message) {} // abilities {check: save: skill: } {spell: dc}
-    static getDetails(message) {
-        let details = {};
-        details.biography = {};
+        // Get items that are close to what the AI gives you
+        array.forEach((element) => {
+            let words = (element.name).split(" ");
+            let foundItems = [];
+            // Split the words to look at individually
+            words.forEach((word) => {
+                let wordItems = itemsPack.search({query: word});
+                let wordMonsterFeature = monsterFeaturePack.search({query: word});
+                let wordClassFeature = classFeaturePack.search({query: word});
 
-        const alignmentRegex = /\#\#\#\s+(Alignment:)\s+(\w+\s+\w+)/;
-        const shortDescRegex = /\#\#\#\s+(Short Description:)\n([\w\s.'"]+)/;
-        const longDescRegex = /\#\#\#\s+(Long Description:)\n([\w\s.'",]+)/;
-        const challengeRegex = /\*\*(Challenge)\*\*\s+([\d/]+)\s+\(([\d]+)\s(XP)\)/;
+                let exactMatch = wordItems.find(wi => wi.name == word);
+                let exactMFMatch = wordMonsterFeature.find(wmf => wmf.name == word);
+                let exactCFMatch = wordClassFeature.find(wcf => wcf.name == word);
+                // If it finds an exact match, add it to our items 
+                if(!!exactMatch) {
+                    wordItems = [exactMatch];
+                }
+                if(!!exactMFMatch) {
+                    wordMonsterFeature = [wordMonsterFeature];
+                }
+                if(!!exactCFMatch) {
+                    wordClassFeature = [wordClassFeature];
+                }
+                // Add what we've got to foundItems
+                foundItems = foundItems.concat(wordItems);
+                foundItems = foundItems.concat(wordMonsterFeature);
+                foundItems = foundItems.concat(wordClassFeature);
+            })
 
-        details.alignment = this.findString(message, alignmentRegex, 2);
-        details.biography.value = this.findString(message, shortDescRegex, 2);
-        details.biography.value += "<p>" + this.findString(message, longDescRegex, 2);
-        let cr = this.findString(message, challengeRegex, 2);
-        details.cr = eval(cr);
-        details.xp = this.findString(message, challengeRegex, 3);
+            foundItems = foundItems.concat(itemsPack.search({ query: element.name }));
+            foundItems = foundItems.concat(monsterFeaturePack.search({query: element.name}));
+            foundItems = foundItems.concat(classFeaturePack.search({query: element.name}));
 
-        return details;
-    } // alignment, biography, cr, type, race?
+            // Find exact match for both/all words?
+            let exactMatch = foundItems.find(i => i.name == element.name);
+            if(!!exactMatch) {
+                foundItems = [exactMatch];
+            }
+            // If there is more than one item in the list, run through the levenschtein algorithm to find the best match
+            if(foundItems.length > 1) {
+                let min = 10000;
+                let bestMatch = null;
 
-    static getLanguages(message) {
-        let traits = {};
-        traits.languages = {};
-        traits.languages.value = [];
+                foundItems.forEach((item) => {
+                    let distance = this.levenshtein(item.name, element.name);
+                    if(distance < min) {
+                        min = distance;
+                        bestMatch = item;
+                        console.log(min + " " + bestMatch.name);
+                    }
+                })
+                foundItems = [bestMatch];
+            }
 
-        const languageRegex = /\*\*(Languages)\*\*\s+([\w,\s]+)/;
-        let l = this.findString(message, languageRegex, 2);
-        let ls = l.split(',');
-        ls.forEach((element) => traits.languages.value.push(element));
+            // If there is something in foundItems, put it in actionsItemsList
+            if(foundItems.length != 0) {
+                actionsItemsList.push(foundItems);
+            }
+            // If there is nothing, run the Levenschtein algorithm on entire compendium to find close match
+            else {
+                // TODO: Do Levenschtein on entire compendium when we have no matches
+            }
+        })
 
-        return traits;
+        return actionsItemsList;
+    }
+
+    /* https://stackoverflow.com/questions/18516942/fastest-general-purpose-levenshtein-javascript-implementation */
+    static levenshtein(s, t) {
+        if (s === t) {
+            return 0;
+        }
+        var n = s.length, m = t.length;
+        if (n === 0 || m === 0) {
+            return n + m;
+        }
+        var x = 0, y, a, b, c, d, g, h, k;
+        var p = new Array(n);
+        for (y = 0; y < n;) {
+            p[y] = ++y;
+        }
+    
+        for (; (x + 3) < m; x += 4) {
+            var e1 = t.charCodeAt(x);
+            var e2 = t.charCodeAt(x + 1);
+            var e3 = t.charCodeAt(x + 2);
+            var e4 = t.charCodeAt(x + 3);
+            c = x;
+            b = x + 1;
+            d = x + 2;
+            g = x + 3;
+            h = x + 4;
+            for (y = 0; y < n; y++) {
+                k = s.charCodeAt(y);
+                a = p[y];
+                if (a < c || b < c) {
+                    c = (a > b ? b + 1 : a + 1);
+                }
+                else {
+                    if (e1 !== k) {
+                        c++;
+                    }
+                }
+    
+                if (c < b || d < b) {
+                    b = (c > d ? d + 1 : c + 1);
+                }
+                else {
+                    if (e2 !== k) {
+                        b++;
+                    }
+                }
+    
+                if (b < d || g < d) {
+                    d = (b > g ? g + 1 : b + 1);
+                }
+                else {
+                    if (e3 !== k) {
+                        d++;
+                    }
+                }
+    
+                if (d < g || h < g) {
+                    g = (d > h ? h + 1 : d + 1);
+                }
+                else {
+                    if (e4 !== k) {
+                        g++;
+                    }
+                }
+                p[y] = h = g;
+                g = d;
+                d = b;
+                b = c;
+                c = a;
+            }
+        }
+    
+        for (; x < m;) {
+            var e = t.charCodeAt(x);
+            c = x;
+            d = ++x;
+            for (y = 0; y < n; y++) {
+                a = p[y];
+                if (a < c || d < c) {
+                    d = (a > d ? d + 1 : a + 1);
+                }
+                else {
+                    if (e !== s.charCodeAt(y)) {
+                        d = c + 1;
+                    }
+                    else {
+                        d = c;
+                    }
+                }
+                p[y] = d;
+                c = a;
+            }
+            h = d;
+        }
+    
+        return h;
     }
 
     // static getSkills(message) {} // acr, ani, arc, ath, dec, his, ins, inv, itm, med, nat, per, prc, prf, rel, slt, ste, sur
@@ -217,7 +394,7 @@ class aiActorConfig extends FormApplication {
       
         const overrides = {
             // height: 'auto',
-            width: '1039',
+            width: '442',
             id: 'ai-actors',
             template: aiActors.TEMPLATES.AIACTORS,
             title: 'Create AI Actors',
@@ -248,68 +425,85 @@ class aiActorConfig extends FormApplication {
 
         // Which button was clicked
         switch (action) {
-          case 'send_message': {
+
+            /* SEND MESSAGE */ 
+            case 'send_message': {
             let ai_message = llmLib.callLlm('Message');
+            let ai_string = ai_message.split("```");
+
+            let ai_object = [];
+            // Remove jobject from text, convert two JSON files into array of objects
+            ai_string.forEach((element) => {
+                if(element.includes("jobject\n")) {
+                    element = element.replace("jobject", "")
+                    element = JSON.parse(element);
+                    ai_object.push(element);
+                }
+            });
+            
+            // Create html to display
+            let html = aiActor.makePretty(ai_object);
+
             aiActor.setLastUpdate(ai_message);
-            aiActor.setNPC();
+            // ai_object contains two JSON objects, one with the format for creating an actor, and one for holding information on actions & items
+            aiActor.setNPC(ai_object[0]);
+            aiActor.setBonus(ai_object[1]);
+
             // Foundry uses showdown to convert markdown to html
+            /* Doing my own HTML conversion right now
             let converter = new showdown.Converter();
             let newHTML = converter.makeHtml(ai_message);
+            */
 
             let ai_element = document.getElementById('ai-response');
-            ai_element.innerHTML += newHTML;
+            ai_element.innerHTML += html;
             break;
           }
-    
-          case 'make_ai_actor': {
+          
+            /* MAKE ACTOR */
+            case 'make_ai_actor': {
             if(aiActor.getLastUpdate() === undefined) {
                 // Don't do anything if no messages have been sent or created
                 break;
             }
             else {
-                let ai_element = aiActor.getLastUpdate();
-                console.log(ai_element);
-                let actorObject = aiActor.parseMessage(ai_element);
-                console.log(actorObject);
+                let npcActor = aiActor.npc;
+                let npcBonuses = aiActor.bonus;
+                let actionsItemsList = [];
 
-                let compendiumString = "Compendium.dnd5e.items.Item.";
-                let pack = game.packs.get("dnd5e.items");
-                let littleItem = pack.search({ query:"Studded Leather Armor +3"});
-                let item = await fromUuid(compendiumString + littleItem[0]._id);
-
-                let tempActor = {
-                    name: actorObject.name,
-                    type: "npc",
-                    system: actorObject
-                };
-                
-                let newActor = await Actor.create(tempActor);
-
-                //console.log(newActor);
+                let newActor = await Actor.create(npcActor);
 
                 let actor = game.actors.get(newActor.id);
 
-                // console.log(item);
+                console.log(newActor);
+                console.log(npcBonuses.bonus);
 
-                // IMPORTANT this MUST be AWAITED
-                await actor.createEmbeddedDocuments("Item", [item]);
+                actionsItemsList = aiActor.getItemList(npcBonuses.bonus);
 
-                let addedItem = actor.items.find(i => i.name == littleItem[0].name);
-                let equipped = {
-                    system: {
-                        equipped: true
-                    }
-                }
-                await addedItem.update(equipped);
-                
-                // actor.prepareEmbeddedDocuments();
+                console.log("Actions Items List:");
+                console.log(actionsItemsList);
 
+                // Create, add, equip item to actor
+                /** TODO: Add class features */
+                actionsItemsList.forEach((element) => {
+                    element.forEach(async (i) => {
+                        let item = await fromUuid(i.uuid);
+                        // IMPORTANT this MUST be AWAITED
+                        await actor.createEmbeddedDocuments("Item", [item]);
 
-                console.log(actor);
+                        let addedItem = actor.items.find(e => e.name === i.name);
+                        let equipped = {
+                            system: {
+                                equipped: true
+                            }
+                        }
+                        await addedItem.update(equipped);
+                    })
+                })
                 break;
             }
             
-          }
+            }
     
           default:
             aiActors.log(false, 'Invalid action detected', action);
