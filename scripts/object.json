@@ -206,8 +206,6 @@ Please fill out these two jobjects for the statblock. If a creature doesn't have
             "type": "(ex:) humanoid"
         },
 
-        "spells": {},
-
         "traits": {
             "size": "(tiny/sm/med/lg/huge/grg)",
             "languages": { "value": [] },
@@ -221,7 +219,27 @@ Please fill out these two jobjects for the statblock. If a creature doesn't have
 ```
 ```jobject
 {
-    "bonus": [ { "name": "", "type": "(item|monsterFeature|spell)", "description": ""}, ... ] (This should include items like weapons, armor (especially if attribute ac is high), shields, and any extra features the creature may have, and spells if they are a spellcaster)
+    "bonus": {
+        "items": {
+            "name": "",
+            "type": "",
+            "description": ""
+        },
+        "actions": {
+            "name": "",
+            "type": "",
+            "description": ""
+        },
+        "spells": {
+            "0": [],
+            "1": [], etc...
+          },
+        "armor": {
+            "name": "",
+            "type": "",
+            "description": ""
+        }
+    } { "name": "", "type": "(item|monsterFeature|spell)", "description": ""}, ...  (This should include items like weapons, armor (especially if attribute ac is high), shields, and any extra features the creature may have, and spells if they are a spellcaster)
 }
 ```
 

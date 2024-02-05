@@ -2,7 +2,8 @@ class aiActors {
     static ID = 'ai-actors';
 
     static TEMPLATES = {
-        AIACTORS: `modules/${this.ID}/templates/ai-actors.hbs`
+        AIACTORS: `modules/${this.ID}/templates/ai-actors.hbs`,
+        AIGEN: `modules/${this.ID}/templates/ai-gen.hbs`
     }
 
     /**
@@ -20,6 +21,7 @@ class aiActors {
     }
     static initialize() {
         this.aiActorsConfig = new aiActorConfig();
+        this.aiImageGenConfig = new aiImageGenConfig();
 
     }
 }
@@ -51,6 +53,10 @@ class aiActor {
     static setBonus(object) {
         this.bonus = object;
         this.errors = {};
+    }
+
+    static setImg(src) {
+        this.imgSrc = src;
     }
 
     static callLlmLib(message) {
@@ -123,9 +129,12 @@ class aiActor {
             movement = this.getObjectString(ai_object[0].system.attributes.movement);
         }
 
-        (ai_object[1].bonus).forEach((element) => {
-            actions += this.getObjectString(element) + "<br>";
-        })
+        for(let key in ai_object[1].bonus) {
+            for(let item in ai_object[1].bonus[key]) {
+                actions += ai_object[1].bonus[key][item] + "<br>";
+            }
+            actions += "<br>";
+        }
 
         switch(ai_object[0].system.traits.size) {
             case 'tiny':
@@ -151,8 +160,7 @@ class aiActor {
                 break;
         }
 
-        /* TODO: Localization 
-                 Spells */
+        /* TODO: Localization */
         let html = `
         <h1>${ ai_object[0].name }</h1>
         <p><i>${ size } ${ ai_object[0].system.details.type }, ${ ai_object[0].system.details.alignment }</i> </p>
@@ -208,73 +216,154 @@ class aiActor {
         let itemsPack = game.packs.get("dnd5e.items");
         let monsterFeaturePack = game.packs.get("dnd5e.monsterfeatures");
         let classFeaturePack = game.packs.get("dnd5e.classfeatures");
-        let spellsPack = game.packs.get("dnd5e.spells");
 
         // Get items that are close to what the AI gives you
-        array.forEach((element) => {
-            let words = (element.name).split(" ");
-            let foundItems = [];
-            // Split the words to look at individually
-            words.forEach((word) => {
-                let wordItems = itemsPack.search({query: word});
-                let wordMonsterFeature = monsterFeaturePack.search({query: word});
-                let wordClassFeature = classFeaturePack.search({query: word});
+        for(let i in array) {
+            if(!!array[i]?.name) {
+                let words = (array[i]?.name).split(" ");
+                let foundItems = [];
+                // Split the words to look at individually
+                words.forEach((word) => {
+                    let wordItems = itemsPack.search({query: word});
+                    let wordMonsterFeature = monsterFeaturePack.search({query: word});
+                    let wordClassFeature = classFeaturePack.search({query: word});
 
-                let exactMatch = wordItems.find(wi => wi.name == word);
-                let exactMFMatch = wordMonsterFeature.find(wmf => wmf.name == word);
-                let exactCFMatch = wordClassFeature.find(wcf => wcf.name == word);
-                // If it finds an exact match, add it to our items 
-                if(!!exactMatch) {
-                    wordItems = [exactMatch];
-                }
-                if(!!exactMFMatch) {
-                    wordMonsterFeature = [wordMonsterFeature];
-                }
-                if(!!exactCFMatch) {
-                    wordClassFeature = [wordClassFeature];
-                }
-                // Add what we've got to foundItems
-                foundItems = foundItems.concat(wordItems);
-                foundItems = foundItems.concat(wordMonsterFeature);
-                foundItems = foundItems.concat(wordClassFeature);
-            })
-
-            foundItems = foundItems.concat(itemsPack.search({ query: element.name }));
-            foundItems = foundItems.concat(monsterFeaturePack.search({query: element.name}));
-            foundItems = foundItems.concat(classFeaturePack.search({query: element.name}));
-
-            // Find exact match for both/all words?
-            let exactMatch = foundItems.find(i => i.name == element.name);
-            if(!!exactMatch) {
-                foundItems = [exactMatch];
-            }
-            // If there is more than one item in the list, run through the levenschtein algorithm to find the best match
-            if(foundItems.length > 1) {
-                let min = 10000;
-                let bestMatch = null;
-
-                foundItems.forEach((item) => {
-                    let distance = this.levenshtein(item.name, element.name);
-                    if(distance < min) {
-                        min = distance;
-                        bestMatch = item;
-                        console.log(min + " " + bestMatch.name);
+                    let exactMatch = wordItems.find(wi => wi.name == word);
+                    let exactMFMatch = wordMonsterFeature.find(wmf => wmf.name == word);
+                    let exactCFMatch = wordClassFeature.find(wcf => wcf.name == word);
+                    // If it finds an exact match, add it to our items 
+                    if(!!exactMatch) {
+                        wordItems = [exactMatch];
                     }
+                    if(!!exactMFMatch) {
+                        wordMonsterFeature = [wordMonsterFeature];
+                    }
+                    if(!!exactCFMatch) {
+                        wordClassFeature = [wordClassFeature];
+                    }
+                    // Add what we've got to foundItems
+                    foundItems = foundItems.concat(wordItems);
+                    foundItems = foundItems.concat(wordMonsterFeature);
+                    foundItems = foundItems.concat(wordClassFeature);
                 })
-                foundItems = [bestMatch];
-            }
 
-            // If there is something in foundItems, put it in actionsItemsList
-            if(foundItems.length != 0) {
-                actionsItemsList.push(foundItems);
-            }
-            // If there is nothing, run the Levenschtein algorithm on entire compendium to find close match
-            else {
-                // TODO: Do Levenschtein on entire compendium when we have no matches
-            }
-        })
+                foundItems = foundItems.concat(itemsPack.search({ query: array[i].name }));
+                foundItems = foundItems.concat(monsterFeaturePack.search({query: array[i].name}));
+                foundItems = foundItems.concat(classFeaturePack.search({query: array[i].name}));
 
+                // Find exact match for both/all words?
+                let exactMatch = foundItems.find(i => i.name == array[i]?.name);
+                if(!!exactMatch) {
+                    foundItems = [exactMatch];
+                }
+                // If there is more than one item in the list, run through the levenschtein algorithm to find the best match
+                if(foundItems.length > 1) {
+                    let min = 10000;
+                    let bestMatch = null;
+
+                    foundItems.forEach((item) => {
+                        let distance = this.levenshtein(item.name, array[i].name);
+                        if(distance < min) {
+                            min = distance;
+                            bestMatch = item;
+                            console.log(min + " " + bestMatch.name);
+                        }
+                    })
+                    foundItems = [bestMatch];
+                }
+
+                // If there is something in foundItems, put it in actionsItemsList
+                if(foundItems.length != 0) {
+                    actionsItemsList.push(foundItems);
+                }
+                // If there is nothing, run the Levenschtein algorithm on entire compendium to find close match
+                else {
+                    // TODO: Do Levenschtein on entire compendium when we have no matches
+                }
+
+            }
+        }
         return actionsItemsList;
+    }
+
+    static getSpellList(array) {
+        let spellList = [];
+        let spellsPack = game.packs.get("dnd5e.spells");
+
+        for(let element in array) {
+            array[element].forEach((i) => {
+                let words = (i).split(" ");
+                let foundItems = [];
+                // Split the words to look at individually
+                words.forEach((word) => {        
+                    let wordItems = spellsPack.search({query: word});
+                    let exactMatch = wordItems.find(wi => wi.name == word);
+                    // If it finds an exact match, add it to our items 
+                    if(!!exactMatch) {
+                        wordItems = [exactMatch];
+                    }
+                    // Add what we've got to foundItems
+                    foundItems = foundItems.concat(wordItems);
+                })
+
+                foundItems = foundItems.concat(spellsPack.search({ query: i }));
+                // Find exact match for both/all words?
+                let exactMatch = foundItems.find(j => (j.name).toLowerCase() == i.toLowerCase());
+                if(!!exactMatch) {
+                    foundItems = exactMatch;
+                }
+                // If there is more than one item in the list, run through the levenschtein algorithm to find the best match
+                if(foundItems.length > 1) {
+                    let min = 10000;
+                    let bestMatch = null;
+    
+                    foundItems.forEach((item) => {
+                        let distance = this.levenshtein(item, i);
+                        if(distance < min) {
+                            min = distance;
+                            bestMatch = item;
+                            console.log(min + " " + bestMatch.name);
+                        }
+                    })
+                    foundItems = bestMatch;
+                }
+    
+                // If there is something in foundItems, put it in actionsItemsList
+                if(foundItems.length != 0) {
+                    spellList.push(foundItems);
+                }
+                // If there is nothing, run the Levenschtein algorithm on entire compendium to find close match
+                else {
+                    // TODO: Do Levenschtein on entire compendium when we have no matches
+                }
+            })
+        }
+        return spellList;
+    }
+
+    static async saveImageToFileSystem(imageUrl) {
+        try {
+            // Step 1: Fetch the image as a Blob from the URL
+            const imageResponse = await fetch(imageUrl, {mode: "no-cors", credentials: "omit" });
+            if (!imageResponse.ok) throw new Error('Network response was not ok');
+            const imageBlob = await imageResponse.blob();
+    
+            // Step 2: Convert the Blob to a File
+            const imageFile = new File([imageBlob], "desiredFilename.png", {type: imageBlob.type});
+    
+            // Step 3: Use FilePicker.upload to save the File
+            const uploadResult = await FilePicker.upload("data", "", imageFile, {}, {notify: true});
+            console.log("Upload successful", uploadResult);
+            return uploadResult;
+        } catch (error) {
+            console.error("Error fetching or uploading image:", error);
+            return null;
+        }
+
+    }
+
+    static removeDuplicates(data) {
+        return [...new Set(data)];
     }
 
     /* https://stackoverflow.com/questions/18516942/fastest-general-purpose-levenshtein-javascript-implementation */
@@ -374,9 +463,6 @@ class aiActor {
         return h;
     }
 
-    // static getSkills(message) {} // acr, ani, arc, ath, dec, his, ins, inv, itm, med, nat, per, prc, prf, rel, slt, ste, sur
-    // static getSpells(message) {}
-
 }
 
 
@@ -428,36 +514,60 @@ class aiActorConfig extends FormApplication {
 
             /* SEND MESSAGE */ 
             case 'send_message': {
-            let ai_message = llmLib.callLlm('Message');
-            let ai_string = ai_message.split("```");
+                let ai_element = document.getElementById('ai-response');
+                ai_element.style.display = 'flex';
+                let loaderElement = document.getElementById('ai-loading');
+                loaderElement.classList.add("loader");
+                let img_div = document.getElementById('ai-img');
+                let imgHolder = document.getElementById('ai-img-gen');
 
-            let ai_object = [];
-            // Remove jobject from text, convert two JSON files into array of objects
-            ai_string.forEach((element) => {
-                if(element.includes("jobject\n")) {
-                    element = element.replace("jobject", "")
-                    element = JSON.parse(element);
-                    ai_object.push(element);
-                }
-            });
-            
-            // Create html to display
-            let html = aiActor.makePretty(ai_object);
+                let userMessage = document.getElementById('user-input').value;
+                // let ai_message = await llmLib.callLlm(userMessage);
+                let ai_message = llmLib.callPredetermined();
+                console.log(ai_message);
+                let ai_string = ai_message.split("```");
 
-            aiActor.setLastUpdate(ai_message);
-            // ai_object contains two JSON objects, one with the format for creating an actor, and one for holding information on actions & items
-            aiActor.setNPC(ai_object[0]);
-            aiActor.setBonus(ai_object[1]);
+                let ai_object = [];
+                // Remove jobject from text, convert two JSON files into array of objects
+                ai_string.forEach((element) => {
+                    if(element.includes("jobject\n")) {
+                        element = element.replace("jobject", "")
+                        element = JSON.parse(element);
+                        ai_object.push(element);
+                    }
+                    else if(element.includes("Dall-E Generation")) {
+                        ai_object.push(element);
+                    }
+                });
+                
+                console.log(ai_object);
+                // Create html to display
+                let html = aiActor.makePretty(ai_object);
 
-            // Foundry uses showdown to convert markdown to html
-            /* Doing my own HTML conversion right now
-            let converter = new showdown.Converter();
-            let newHTML = converter.makeHtml(ai_message);
-            */
+                aiActor.setLastUpdate(ai_message);
+                // ai_object contains two JSON objects, one with the format for creating an actor, and one for holding information on actions & items
+                aiActor.setNPC(ai_object[0]);
+                aiActor.setBonus(ai_object[1]);
 
-            let ai_element = document.getElementById('ai-response');
-            ai_element.innerHTML += html;
-            break;
+                // Foundry uses showdown to convert markdown to html
+                /* Doing my own HTML conversion right now
+                let converter = new showdown.Converter();
+                let newHTML = converter.makeHtml(ai_message);
+                */
+
+               // let imgGen = 'icons/svg/mystery-man.svg';
+               let imgGen = await llmLib.callDallE(ai_object[2]);
+               console.log(imgGen);
+               imgHolder.src = imgGen;
+               aiActor.setImg(imgGen);
+               
+               ai_element.style.display = 'block';
+               loaderElement.classList.remove("loader");
+               img_div.style.display = 'block';
+               loaderElement.style.display = 'none';
+               ai_element.innerHTML += html;
+               
+                break;
           }
           
             /* MAKE ACTOR */
@@ -469,19 +579,27 @@ class aiActorConfig extends FormApplication {
             else {
                 let npcActor = aiActor.npc;
                 let npcBonuses = aiActor.bonus;
+                let imgSrc = aiActor.imgSrc;
                 let actionsItemsList = [];
+                let spellList = [];
 
                 let newActor = await Actor.create(npcActor);
 
                 let actor = game.actors.get(newActor.id);
 
+                let newImg = await aiActor.saveImageToFileSystem(imgSrc);
+                console.log(newImg);
+
+                actor.img = imgSrc;
+
                 console.log(newActor);
                 console.log(npcBonuses.bonus);
 
                 actionsItemsList = aiActor.getItemList(npcBonuses.bonus);
-
-                console.log("Actions Items List:");
-                console.log(actionsItemsList);
+                spellList = aiActor.getSpellList(npcBonuses.bonus.spells);
+                spellList = aiActor.removeDuplicates(spellList);
+                console.log("Spells:");
+                console.log(spellList);
 
                 // Create, add, equip item to actor
                 /** TODO: Add class features */
@@ -499,6 +617,14 @@ class aiActorConfig extends FormApplication {
                         }
                         await addedItem.update(equipped);
                     })
+                })
+
+                spellList.forEach(async (element) => {
+                    let spell = await fromUuid(element.uuid);
+                    await actor.createEmbeddedDocuments("Item", [spell]);
+
+                    // Do they need to be prepared?
+                    // let addedSpell = actor.items.find(e => e.name === spell.name)
                 })
                 break;
             }
@@ -527,6 +653,7 @@ Hooks.on("ready", () => {
     // console.log(pack);
 });
 
+// Create AI Actor Button in Actor directory
 Hooks.on('getActorDirectoryEntryContext', (html) => { 
     const directoryHeader = html.find(`[class="header-actions action-buttons flexrow"]`);
 
@@ -543,3 +670,4 @@ Hooks.on('getActorDirectoryEntryContext', (html) => {
         aiActors.aiActorsConfig.render(true, {userId});
     });
 });
+

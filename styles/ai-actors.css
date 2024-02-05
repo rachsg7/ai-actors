@@ -1,7 +1,14 @@
 #ai-response {
     height: 500px;
-    /* width: 1000px; */
     overflow: scroll;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+#loading {
+    height: 150px;
+    width: 150px;
 }
 
 input.ai-actors {
@@ -43,4 +50,33 @@ hr {
 
 h2.actions {
     border-top: 1em;
+}
+
+.loader {
+    border: 16px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 16px solid rgba(105, 0, 8, 0.8);
+    width: 70px;
+    height: 70px;
+    -webkit-animation: spin 2s linear infinite; /* Safari */
+    animation: spin 2s linear infinite;
+}
+
+#ai-img {
+    width: 250px;
+}
+
+#img_div {
+    width: 250px;
+}
+
+/* Safari */
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

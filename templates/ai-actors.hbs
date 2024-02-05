@@ -1,5 +1,9 @@
 <form>
-    <div id="ai-response"></div>
+    <div id="ai-response">
+        <div id="ai-img" style="display: none"><img id="ai-img-gen" src="icons/svg/mystery-man.svg"></div>
+        <div id="ai-loading"></div>
+    </div>
+    
     <input type="text" id="user-input" class="ai-actors" name="user-input" placeholder="{{localize "AI-ACTOR.type_a_description" }}">
 
     <button type="button" class="ai-actors" title="{{localize "AI-ACTOR.send_message"}}" data-action="send_message"><i class="fa-solid fa-up-long"></i></button>

@@ -4,6 +4,9 @@
       "send_message": "Send message",
       "make_actor": "Make Actor",
       "type_a_description": "Type a description of a character",
+      "generate_image": "Generate Image",
+      "save_image": "Save Image",
+      "regenerate_image": "Regenerate Image",
       "settings": {
           "api_key": {
             "Name": "API Key",
