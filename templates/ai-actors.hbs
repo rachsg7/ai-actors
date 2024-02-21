@@ -1,11 +1,21 @@
-<form>
-    <div id="ai-response">
-        <div id="ai-img" style="display: none"><img id="ai-img-gen" src="icons/svg/mystery-man.svg"></div>
-        <div id="ai-loading"></div>
-    </div>
-    
-    <input type="text" id="user-input" class="ai-actors" name="user-input" placeholder="{{localize "AI-ACTOR.type_a_description" }}">
+<form id="ai-gen-form">
+    <div id="ai-gen-window">
+        <div id="ai-response">
+            <div id="ai-img" style="display: none">
+                <img id="ai-img-gen" src="icons/svg/mystery-man.svg">
+                <div id="ai-img-loading"></div>
+                <button type="button" id="regenerate_img" data-action="regenerate_img">{{localize "AI-ACTOR.regenerate_image"}}</button>
+            </div>
+            <div id="ai-inner-response"></div>
+            <div id="ai-loading"></div>
+        </div>
+        
+        <div id="user-inputs">
+            <input type="text" id="user-input" class="ai-actors" name="user-input" placeholder="{{localize "AI-ACTOR.type_a_description" }}">
 
-    <button type="button" class="ai-actors" title="{{localize "AI-ACTOR.send_message"}}" data-action="send_message"><i class="fa-solid fa-up-long"></i></button>
-    <button type="button" data-action="make_ai_actor">{{localize "AI-ACTOR.make_actor"}}</button>
+            <button type="button" class="ai-actors" id="send_message_btn" title="{{localize "AI-ACTOR.generate_actor"}}" data-action="send_message"><i class="fa-solid fa-up-long"></i>{{localize "AI-ACTOR.generate"}}</button>
+            <select name="folders" id="folders" class="selector"></select>
+            <button type="button" id="make_ai_actor_btn" data-action="make_ai_actor">{{localize "AI-ACTOR.make_actor"}}</button>
+        </div>
+    </div>
 </form>

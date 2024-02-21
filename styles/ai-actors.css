@@ -1,9 +1,43 @@
-#ai-response {
-    height: 500px;
-    overflow: scroll;
+#ai-gen-form {
+    height: 100%;
+}
+
+#ai-gen-window {
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-items: stretch;
+    height: 100%;
+}
+
+#ai-response {
+    margin-top: 2em;
+    min-height: 400px;
+    height: calc(100% - 80px);
+    overflow: scroll;
+    flex-direction: column;
+    display: flex;
+    align-items: center;
     justify-content: center;
+}
+
+#regenerate_img {
+    margin: 1em 0;
+}
+
+#user-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-gap: 6px;
+}
+
+#folders {
+    grid-column: 1 / 6;
+    padding: 0.5em;
+    height: auto;
+}
+
+#folders * {
+    padding: 0.5em;
 }
 
 #loading {
@@ -13,14 +47,12 @@
 
 input.ai-actors {
     padding: 1.1em !important;
-    width: 87%;
-}
-button.ai-actors {
-    width: 10%;
+    grid-column: 1 / 5;
+    height: auto;
 }
 
-.ai-actors {
-    margin: 8px 0px 8px 8px;
+#make_ai_actor_btn {
+    grid-column: 1 / 6;
 }
 
 .monospace {
@@ -39,7 +71,7 @@ hr {
 }
 
 .block {
-    padding: 1em;
+    padding: 0.5em;
     flex-direction: column;
 }
 
@@ -68,6 +100,15 @@ h2.actions {
 
 #img_div {
     width: 250px;
+}
+
+.selector option{
+    padding: .5em;
+}
+
+.selector option:hover {
+    background-color: #782e22;
+    color: white;
 }
 
 /* Safari */
