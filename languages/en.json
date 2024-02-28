@@ -69,7 +69,10 @@
           "sleight_of_hand": "Sleight of Hand",
           "stealth": "Stealth",
           "survival": "Survival",
-          "value": ""
+          "value": "",
+          "actionType": "Action Type",
+          "versatile": "Damage",
+          "attunement": "Attunement"
       },
       "errors": {
           "generic": "An error has occurred. Please try again."

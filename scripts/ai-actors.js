@@ -91,9 +91,14 @@ class aiActor {
         let string = "";
         for(const key in object) {
             if(object[key] != 0) {
-                let name = key.replace(" ", "_");
-                let attribute = game.i18n.localize(`AI-ACTOR.character_sheet.${name}`);
-                string += "<strong>" + attribute + ":</strong> " + object[key] + "<br>";
+                if(typeof object[key] === 'object') {
+                    string += this.getObjectString(object[key]);
+                }
+                else {
+                    let name = key.replace(" ", "_");
+                    let attribute = game.i18n.localize(`AI-ACTOR.character_sheet.${name}`);
+                    string += "<strong>" + attribute + ":</strong> " + object[key] + "<br>";
+                }
             }
         }
         return string;
