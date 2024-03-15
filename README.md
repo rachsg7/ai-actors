@@ -4,7 +4,7 @@ AI Actors is a Foundry VTT Module that creates Actors, items, and armor generate
  
 ## How to Use
 
-AI Actors must be used with LLM-Lib, a module that connects to ChatGPT.
+AI Actors must be used with [LLM-Lib](https://github.com/rachsg7/llm-lib), a module that connects to ChatGPT.
 
 ### Asking ChatGPT for Advice
 
