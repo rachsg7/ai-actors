@@ -1,6 +1,7 @@
 {
     "AI-ACTOR": {
       "create_actor": "Generate NPC",
+      "msg_hist": "Message History",
       "generate_actor": "Generate NPC",
       "generate": "Generate",
       "send_message": "Send message",
@@ -12,14 +13,24 @@
       "generating_image": "Generating Image... this may take a minute",
       "generating_character": "Generating Character... this may take a minute",
       "select_folder": "select a folder",
+      "edit_description": "Edit Description",
+      "chatBot": "Chat with Bot",
       "settings": {
         "api_key": {
           "Name": "API Key",
-          "Hint": "You need to provide an API key to ChatGPT for this module to work."
+          "Hint": "Provide an API key to run ChatGPT"
         },
         "img_gen": {
           "Name": "Image Generation",
           "Hint": "Generate image along with NPC"
+        },
+        "message_history": {
+          "Name": "Max Message History Length",
+          "Hint": "Limits the number of chats stored in history to save space. Older entries are removed first."
+        },
+        "message_hist_img": {
+          "Name": "Save images to message history",
+          "Hint": "Saving images to message history increases the file size by a lot"
         }
       },
       "character_sheet": {

@@ -4,7 +4,11 @@
             <div id="ai-img" style="display: none">
                 <img id="ai-img-gen" src="icons/svg/mystery-man.svg">
                 <div id="ai-img-loading"></div>
-                <button type="button" id="regenerate_img" data-action="regenerate_img">{{localize "AI-ACTOR.regenerate_image"}}</button>
+                <div class="flex">
+                    <button type="button" id="editDescription" data-action="edit_description">{{localize "AI-ACTOR.edit_description"}}</button>
+                    <button type="button" id="regenerate_img" data-action="regenerate_img">{{localize "AI-ACTOR.regenerate_image"}}</button>
+                </div>
+                <textarea id="ai-textarea" class="textarea" style="display: none"></textarea>
             </div>
             <div id="ai-inner-response"></div>
             <div id="ai-loading"></div>

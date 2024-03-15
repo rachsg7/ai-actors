@@ -3,7 +3,12 @@ class aiActors {
 
     static TEMPLATES = {
         AIACTORS: `modules/${this.ID}/templates/ai-actors.hbs`,
-        AIGEN: `modules/${this.ID}/templates/ai-gen.hbs`
+        AIGEN: `modules/${this.ID}/templates/ai-gen.hbs`,
+        AIHIST: `modules/${this.ID}/templates/ai-msg-hist.hbs`
+    }
+
+    static FLAGS = {
+        MSGHIST: 'messagehist'
     }
 
     /**
@@ -21,6 +26,7 @@ class aiActors {
     }
     static initialize() {
         this.aiActorsConfig = new aiActorConfig();
+        this.viewMsgHist = new aiActorMessageHistory();
     }
 }
 
@@ -381,9 +387,17 @@ class aiActor {
 
     static async getItemList(array) {
         let actionsItemsList = [];
-        let itemsPack = game.packs.get("dnd5e.items");
-        let monsterFeaturePack = game.packs.get("dnd5e.monsterfeatures");
-        let classFeaturePack = game.packs.get("dnd5e.classfeatures");
+        let allPacks = game.packs;
+        let releventPacks = [];
+
+        allPacks.forEach((i) => {
+            let id = i.metadata.id;
+            if(id.includes("items") || id.includes("features")) {
+                releventPacks.push(i);
+            }
+        });
+
+        releventPacks.push(game.items);
 
         if(Array.isArray(array)) {
             // Get items that are close to what the AI gives you
@@ -391,35 +405,25 @@ class aiActor {
                 if(!!array[i]?.name) {
                     let words = (array[i]?.name).split(" ");
                     let foundItems = [];
-                    let unFoundItems = [];
+
                     // Split the words to look at individually
                     words.forEach((word) => {
-                        let wordItems = itemsPack.search({query: word});
-                        let wordMonsterFeature = monsterFeaturePack.search({query: word});
-                        let wordClassFeature = classFeaturePack.search({query: word});
-    
-                        let exactMatch = wordItems.find(wi => wi.name == word);
-                        let exactMFMatch = wordMonsterFeature.find(wmf => wmf.name == word);
-                        let exactCFMatch = wordClassFeature.find(wcf => wcf.name == word);
-                        // If it finds an exact match, add it to our items 
-                        if(!!exactMatch) {
-                            wordItems = [exactMatch];
-                        }
-                        if(!!exactMFMatch) {
-                            wordMonsterFeature = [wordMonsterFeature];
-                        }
-                        if(!!exactCFMatch) {
-                            wordClassFeature = [wordClassFeature];
-                        }
-                        // Add what we've got to foundItems
-                        foundItems = foundItems.concat(wordItems);
-                        foundItems = foundItems.concat(wordMonsterFeature);
-                        foundItems = foundItems.concat(wordClassFeature);
+                        releventPacks.forEach((pack) => {
+                            let wordItems = pack.search({query: word});
+
+                            let exactMatch = wordItems.find(wi => wi.name == word);
+
+                            if(!!exactMatch) {
+                                wordItems = [exactMatch];
+                            }
+
+                            foundItems = foundItems.concat(wordItems);
+                        })
                     })
     
-                    foundItems = foundItems.concat(itemsPack.search({ query: array[i].name }));
-                    foundItems = foundItems.concat(monsterFeaturePack.search({query: array[i].name}));
-                    foundItems = foundItems.concat(classFeaturePack.search({query: array[i].name}));
+                    releventPacks.forEach((pack) => {
+                        foundItems = foundItems.concat(pack.search({query: array[i].name}));
+                    })
     
                     // Find exact match for both/all words?
                     let exactMatch = foundItems.find(i => i.name == array[i]?.name);
@@ -428,18 +432,25 @@ class aiActor {
                     }
                     // If there is more than one item in the list, run through the levenschtein algorithm to find the best match
                     if(foundItems.length > 1) {
-                        let min = 10000;
+                        let min = 5;
                         let bestMatch = null;
     
                         foundItems.forEach((item) => {
-                            let distance = this.levenshtein(item.name, array[i].name);
-                            if(distance < min) {
-                                min = distance;
-                                bestMatch = item;
-                                console.log(min + " " + bestMatch.name);
+                            if(item.type == array[i].type) {
+                                let distance = this.levenshtein(item.name, array[i].name);
+                                if(distance < min) {
+                                    min = distance;
+                                    bestMatch = item;
+                                    console.log(min + " " + bestMatch.name);
+                                }
                             }
                         })
-                        foundItems = [bestMatch];
+                        if(bestMatch != null) {
+                            foundItems = [bestMatch];
+                        }
+                        else {
+                            foundItems = [];
+                        }
                     }
     
                     // If there is something in foundItems, put it in actionsItemsList
@@ -461,35 +472,23 @@ class aiActor {
             if(!!array?.name) {
                 let words = (array?.name).split(" ");
                 let foundItems = [];
-                let unFoundItems = [];
+
                 // Split the words to look at individually
                 words.forEach((word) => {
-                    let wordItems = itemsPack.search({query: word});
-                    let wordMonsterFeature = monsterFeaturePack.search({query: word});
-                    let wordClassFeature = classFeaturePack.search({query: word});
+                    releventPacks.forEach((pack) => {
+                        let wordItems = pack.search({query: word});
+                        let exactMatch = wordItems.find(wi => wi.name == word);
 
-                    let exactMatch = wordItems.find(wi => wi.name == word);
-                    let exactMFMatch = wordMonsterFeature.find(wmf => wmf.name == word);
-                    let exactCFMatch = wordClassFeature.find(wcf => wcf.name == word);
-                    // If it finds an exact match, add it to our items 
-                    if(!!exactMatch) {
-                        wordItems = [exactMatch];
-                    }
-                    if(!!exactMFMatch) {
-                        wordMonsterFeature = [wordMonsterFeature];
-                    }
-                    if(!!exactCFMatch) {
-                        wordClassFeature = [wordClassFeature];
-                    }
-                    // Add what we've got to foundItems
-                    foundItems = foundItems.concat(wordItems);
-                    foundItems = foundItems.concat(wordMonsterFeature);
-                    foundItems = foundItems.concat(wordClassFeature);
+                        if(!!exactMatch) {
+                            wordItems = [exactMatch];
+                        }
+                        foundItems = foundItems.concat(wordItems);
+                    })
                 })
 
-                foundItems = foundItems.concat(itemsPack.search({ query: array.name }));
-                foundItems = foundItems.concat(monsterFeaturePack.search({query: array.name}));
-                foundItems = foundItems.concat(classFeaturePack.search({query: array.name}));
+                releventPacks.forEach((pack) => {
+                    foundItems = foundItems.concat(pack.search({ query: array.name }));
+                })
 
                 // Find exact match for both/all words?
                 let exactMatch = foundItems.find(i => i.name == array?.name);
@@ -502,14 +501,21 @@ class aiActor {
                     let bestMatch = null;
 
                     foundItems.forEach((item) => {
-                        let distance = this.levenshtein(item.name, array.name);
-                        if(distance < min) {
-                            min = distance;
-                            bestMatch = item;
-                            console.log(min + " " + bestMatch.name);
+                        if(item.type == i.type) {
+                            let distance = this.levenshtein(item.name, array.name);
+                            if(distance < min) {
+                                min = distance;
+                                bestMatch = item;
+                                console.log(min + " " + bestMatch.name);
+                            }
                         }
                     })
-                    foundItems = [bestMatch];
+                    if(bestMatch != null) {
+                        foundItems = [bestMatch];
+                    }
+                    else {
+                        foundItems = [];
+                    }
                 }
 
                 // If there is something in foundItems, put it in actionsItemsList
@@ -532,24 +538,38 @@ class aiActor {
     static async getSpellList(array) {
         let spellList = [];
         let spellsPack = game.packs.get("dnd5e.spells");
+        let allPacks = game.packs;
+        let releventPacks = [];
+
+        allPacks.forEach((i) => {
+            let id = i.metadata.id;
+            if(id.includes("spells")) {
+                releventPacks.push(i);
+            }
+        });
 
         for(let element in array) {
             array[element].forEach(async (i) => {
                 let words = (i).split(" ");
                 let foundItems = [];
                 // Split the words to look at individually
-                words.forEach((word) => {        
-                    let wordItems = spellsPack.search({query: word});
-                    let exactMatch = wordItems.find(wi => wi.name == word);
-                    // If it finds an exact match, add it to our items 
-                    if(!!exactMatch) {
-                        wordItems = [exactMatch];
-                    }
-                    // Add what we've got to foundItems
-                    foundItems = foundItems.concat(wordItems);
+                words.forEach((word) => {
+                    releventPacks.forEach((spellPack) => {
+                        let wordItems = spellPack.search({query: word});
+                        let exactMatch = wordItems.find(wi => wi.name == word);
+                        // If it finds an exact match, add it to our items 
+                        if(!!exactMatch) {
+                            wordItems = [exactMatch];
+                        }
+                        // Add what we've got to foundItems
+                        foundItems = foundItems.concat(wordItems);
+                    })
                 })
 
-                foundItems = foundItems.concat(spellsPack.search({ query: i }));
+                releventPacks.forEach((spellPack) => {
+                    foundItems = foundItems.concat(spellPack.search({ query: i }));
+                })
+
                 // Find exact match for both/all words?
                 let exactMatch = foundItems.find(j => (j.name).toLowerCase() == i.toLowerCase());
                 if(!!exactMatch) {
@@ -561,11 +581,13 @@ class aiActor {
                     let bestMatch = null;
     
                     foundItems.forEach((item) => {
-                        let distance = this.levenshtein(item, i);
-                        if(distance < min) {
-                            min = distance;
-                            bestMatch = item;
-                            console.log(min + " " + bestMatch.name);
+                        if(item.type == i.type) {
+                            let distance = this.levenshtein(item, i);
+                            if(distance < min) {
+                                min = distance;
+                                bestMatch = item;
+                                console.log(min + " " + bestMatch.name);
+                            }
                         }
                     })
                     foundItems = bestMatch;
@@ -652,11 +674,15 @@ class aiActor {
         let loaderElement = document.getElementById('ai-loading');
         loaderElement.classList.add("loader");
         let imgHolder = document.getElementById('ai-img-gen');
-
+        let regenImg = document.getElementById('regenerate_img');
+        let editDescription = document.getElementById('editDescription');
+        
         ai_response.innerHTML = "";
         ai_element.style.display = "block";
         loaderElement.classList.remove("loader");
-        imgHolder.src = "";
+        imgHolder.style.display = "none";
+        regenImg.style.display = "none";
+        editDescription.style.display = "none";
     }
 
     static async createItem(itemData) {
@@ -772,6 +798,87 @@ class aiActor {
 
 }
 
+class messageHistory {
+    static async allMessages() {
+        let path = "./message_history.json";
+        try {
+            let response = await fetch(path);
+            let allMessages = await response.json();
+            return allMessages;
+        } catch(err) {
+            console.log(err);
+        }
+    }
+
+    static async addMessage(data) {
+        const MAX_LENGTH = game.settings.get(`${aiActorSettings.ID}`, `${aiActorSettings.SETTINGS.MESSAGE_HIST}`);
+        let filePath = "./message_history.json";
+        let allMessages = [];
+        try {
+            let response = await fetch(filePath);
+            allMessages = await response.json();
+        } catch(err) {
+            console.log(err);
+        }
+
+        // TODO: Make this dynamic set in settings?
+        if(allMessages.length >= MAX_LENGTH) {
+            allMessages.shift();
+        }
+        allMessages.push(data);
+        let file = new File([JSON.stringify(allMessages)], "message_history.json", {type: "application/json"});
+        let path = "./";
+        let uploadResult = await FilePicker.upload("data", path, file, {}, {notify: true});
+        return uploadResult;
+    }
+
+    static deleteMessage(messageId) {
+        const message = this.allMessages[messageId];
+
+        // Foundry specific syntax required to delete a key from a persisted object in the database
+        const keyDeletion = {
+        [`-=${messageId}`]: null
+        }
+
+        // update the database with the updated ToDo list
+        return game.users.get(message.userId)?.setFlag(aiActors.ID, aiActors.FLAGS.MSGHIST, keyDeletion);
+    }
+
+    static deleteAllMessages() {
+        const messages = this.allMessages;
+
+        for(let key in messages) {
+            const keyDeletion = {
+                [`-=${key}`]: null
+            }
+            game.users.get(messages.userId)?.setFlag(aiActors.ID, aiActors.FLAGS.MSGHIST, keyDeletion);
+        }
+
+        return;
+
+        // return game.users.get(messages.userId)?.setFlag(aiActors.ID, aiActors.FLAGS.MSGHIST, keyDeletion);
+    }
+}
+
+class chatGPTMessages {
+    constructor() {
+        this.messages = [];
+    }
+
+    addMessage(message) {
+        this.messages.push({
+            ...message
+        });
+    }
+
+    getMessages() {
+        return this.messages;
+    }
+
+    static initialize() {
+        this.gptMessages = new chatGPTMessages();
+    }
+}
 
 /**
  * Register our module's debug flag with developer mode's custom hook
@@ -827,14 +934,14 @@ class aiActorConfig extends FormApplication {
                 const IMG_GEN_SETTING = game.settings.get(`${aiActorSettings.ID}`, `${aiActorSettings.SETTINGS.IMAGE_GEN}`);
                 let ai_element = document.getElementById('ai-response');
                 let ai_response = document.getElementById('ai-inner-response');
-                ai_element.style.display = 'flex';
                 let loaderElement = document.getElementById('ai-loading');
-                loaderElement.classList.add("loader");
                 let img_div = document.getElementById('ai-img');
                 let imgHolder = document.getElementById('ai-img-gen');
                 let send_message_btn = document.getElementById('send_message_btn');
                 let make_actor_btn = document.getElementById('make_ai_actor_btn');
-                let regenerate_img = document.getElementById('regenerate_img')
+                let regenerate_img = document.getElementById('regenerate_img');
+                let textarea = document.getElementById('ai-textarea');
+                let editDescription = document.getElementById('editDescription');
                 let imgDesc = "";
                 let html = "";
 
@@ -846,7 +953,12 @@ class aiActorConfig extends FormApplication {
                 let userMessage = document.getElementById('user-input').value;
                 send_message_btn.setAttribute("disabled", "disabled");
                 make_actor_btn.setAttribute("disabled", "disabled");
+
+                /* Set HTML Elements*/
+                ai_element.style.display = 'flex';
                 ai_response.innerHTML = "<p>" + generating_character + "</p>";
+                loaderElement.classList.add("loader");
+                loaderElement.style.display = 'block';
 
                 /* If userMessage is empty */
                 if(userMessage.length == 0) {
@@ -857,50 +969,9 @@ class aiActorConfig extends FormApplication {
                 let ai_object = await llmLib.callLlm(userMessage);
                 // let ai_message = llmLib.callPredetermined();
 
-                /* Set HTML elements and split the ai message */
+                /* Set HTML elements */
                 ai_response.innerHTML = "<p>" + generating_image + "</p>";
-                // console.log(ai_message);
-                // let ai_string = ai_message.split("```");
-                // console.log(ai_string);
 
-                // if(ai_string[0] == ("\n")) {
-                //     // Do nothing
-                // }
-                // else if(!ai_string[0].toLowerCase().startsWith("jobject") || !ai_string[0].toLowerCase().startsWith("json")) {
-                //     ai_string[0] = "jobject\n" + ai_string[0];
-                // }
-
-                // let ai_object = [];
-                // /* Remove jobject from text, convert two JSON files into array of objects */
-                // ai_string.forEach((element, index) => {
-                //     if(element.toLowerCase().includes("jobject\n") || element.toLowerCase().includes('json\n')) {
-                //         element = element.replace("jobject", "");
-                //         element = element.replace("json", "");
-                //         if(element.includes('"bonus":') && index < 2) {
-                //             let jsonObjects = element.split(', \n "bonus":');
-
-                //             jsonObjects.forEach((i) => {
-                //                 i = JSON.parse(i);
-                //                 ai_object.push(i);
-                //             })
-                //             return;
-                //         }
-                //         try {
-                //             element = JSON.parse(element);
-                //         } catch(err) {
-                //             aiActor.errorMessage(err);
-                //         }
-                        
-                //         ai_object.push(element);
-                //     }
-                //     else if(element.includes("jobject ") || element.includes("------------------")) {
-                //         // Do nothing
-                //     }
-                //     else if((element.length > 3) && (index != 0)){
-                //         ai_object.push(element);
-                //     }
-                // });
-                
                 console.log(ai_object);
 
                 /* Create html to display */
@@ -922,18 +993,25 @@ class aiActorConfig extends FormApplication {
                 let newHTML = converter.makeHtml(ai_message);
                 */
 
-                /* Get the description to create an image */
+                /* Get and Set the description to create an image */
                 if(!!ai_object[3]) {
+                    aiActor.setDescription(ai_object[3]);
                     imgDesc = ai_object[3];
+                    textarea.value = ai_object[3];
                 }
                 else if(!!ai_object[2]) {
+                    aiActor.setDescription(ai_object[2]);
                     imgDesc = ai_object[2];
+                    textarea.value = ai_object[2];
                 }
                 else {
+                    aiActor.setDescription(ai_object[0]?.system?.details?.biography?.value);
                     imgDesc = ai_object[0]?.system?.details?.biography?.value;
+                    textarea.value = ai_object[0]?.system?.details?.biography?.value;
                 }
 
                 aiActor.setDescription(imgDesc);
+
                 let imgGen;
 
                 /* Call Dall-E 3 */
@@ -961,15 +1039,22 @@ class aiActorConfig extends FormApplication {
                         imgHolder.src = "icons/svg/mystery-man.svg";
                     }
                 }
+
+                ai_object.push(imgGen);
+                // TODO: Save ai_object to JSON file
+                messageHistory.addMessage(ai_object);
                
                 /* Update HTML elements */
                 ai_element.style.display = 'block';
+                imgHolder.style.display = 'block';
                 loaderElement.classList.remove("loader");
                 img_div.style.display = 'block';
                 loaderElement.style.display = 'none';
+                regenerate_img.style.display = 'block';
                 ai_response.innerHTML = html;
                 send_message_btn.removeAttribute("disabled");
                 make_actor_btn.removeAttribute("disabled");
+                editDescription.style.display = 'block';
                
                 break;
           }
@@ -988,6 +1073,8 @@ class aiActorConfig extends FormApplication {
                 let npcActor = aiActor.npc;
                 let npcBonuses = aiActor.bonus;
                 let imgSrc = aiActor.imgSrc;
+                let description = aiActor.description;
+                
                 let spellList = [];
                 let nameString = (npcActor.name).replace(/\s+/g, '');
 
@@ -1030,7 +1117,7 @@ class aiActorConfig extends FormApplication {
 
             case 'regenerate_img': {
                 /* Get HTML elements*/
-                const imgDesc = aiActor.npc.system.description;
+                const imgDesc = document.getElementById('ai-textarea').value;
                 let imgHolder = document.getElementById('ai-img-gen');
                 let loading = document.getElementById('ai-img-loading');
                 let regenImg = document.getElementById('regenerate_img');
@@ -1051,6 +1138,18 @@ class aiActorConfig extends FormApplication {
                 aiActor.setImg(imgGen);
                 break;
             }
+
+            case 'edit_description': {
+                let descriptionTextarea = document.getElementById("ai-textarea");
+
+                if(descriptionTextarea.style.display === "block") {
+                    descriptionTextarea.style.display = "none";
+                }
+                else {
+                    descriptionTextarea.style.display = "block";
+                }
+                break;
+            }
     
           default:
             aiActors.log(false, 'Invalid action detected', action);
@@ -1060,11 +1159,193 @@ class aiActorConfig extends FormApplication {
     }
 }
 
+class aiActorMessageHistory extends FormApplication {
+    static get defaultOptions() {
+        const defaults = super.defaultOptions;
+        const title = game.i18n.localize('AI-ACTOR.msg_hist');
+      
+        const overrides = {
+            // height: 'auto',
+            width: '442',
+            id: 'ai-actor-msg-hist',
+            template: aiActors.TEMPLATES.AIHIST,
+            title: title,
+            userId: game.userId,
+            resizable: true,
+            //closeOnSubmit: false, // do not close when submitted
+            //submitOnChange: true, // submit when any input changes
+        };
+      
+        const mergedOptions = foundry.utils.mergeObject(defaults, overrides);
+        
+        return mergedOptions;
+    }
+
+    async getData(options) {
+        let myMessages = await messageHistory.allMessages();
+        console.log("My Messages:", myMessages);
+        Handlebars.registerHelper("printObject", function(message) {
+            let html = aiActor.makePretty(message);
+            return new Handlebars.SafeString(html);
+        });
+        Handlebars.registerHelper("printImg", function(img) {
+            let name = img[0].name;
+            name = name.replace(" ", "");
+            if(!!img[4]) {
+                let html = `<img id="${name}-img" class="ai-img-gen" src="data:image/png;base64,${img[4]}">`;
+                return new Handlebars.SafeString(html);
+            }
+            else {
+                let html = `<img id="${name}-img" class="ai-img-gen" src="icons/svg/mystery-man.svg">`;
+                return new Handlebars.SafeString(html);
+            }
+        })
+        Handlebars.registerHelper("printTextarea", function(message) {
+            let name = (message[0].name).replace(" ", "");
+            let html = `<textarea id="${name}-txt" class="textarea" style="display: none">${message[3]}</textarea>`;
+            return new Handlebars.SafeString(html);
+        })
+        Handlebars.registerHelper("printLoader", function(message) {
+            let name = (message[0].name).replace(" ", "");
+            let html = `<div id="${name}-ai-img-loading"></div>`;
+            return new Handlebars.SafeString(html);
+        })
+        return {
+            messages: myMessages
+        };
+    }
+
+    activateListeners(html) {
+        super.activateListeners(html);
+  
+        html.on('click', "[data-action]", this._handleButtonClick.bind(this));
+    }
+
+    async _handleButtonClick(event) {
+        const clickedElement = $(event.currentTarget);
+        const action = clickedElement.data().action;
+
+        // Which button was clicked
+        switch (action) {
+            case "unroll": {
+                event.currentTarget.classList.toggle("active");
+                const content = event.currentTarget.nextElementSibling;
+                if(content.style.display === "block") {
+                    content.style.display = "none";
+                }
+                else {
+                    content.style.display = "block";
+                }
+                break;
+            }
+
+            case 'regenerate_img': {
+                const characterId = (event.target.dataset.characterId).replace(" ", "");
+                /* Get HTML elements*/
+                // const imgDesc = aiActor.description;
+                let imgHolder = document.getElementById(characterId + "-img");
+                let loading = document.getElementById(characterId + '-ai-img-loading');
+                let regenImg = document.getElementById('regenerate_img');
+                let descriptionTextarea = document.getElementById(characterId + "-txt").value;
+
+                // /* Set HTML Elements */
+                regenImg.setAttribute("disabled", "disabled");
+                imgHolder.style.display = 'none';
+                loading.classList.add('loader');
+
+                // /* Call Dall-E 3 */
+                let imgGen = await llmLib.callDallE(descriptionTextarea);
+
+                // /* Reset HTML Elements */
+                loading.classList.remove('loader');
+                imgHolder.style.display = 'block';
+                imgHolder.src = "data:image/png;base64," + imgGen;
+                regenImg.removeAttribute("disabled");
+                // aiActor.setImg(imgGen);
+                break;
+            }
+
+            case 'edit_description': {
+                const characterId = (event.target.dataset.characterId).replace(" ", "");
+                let descriptionTextarea = document.getElementById(characterId + "-txt");
+
+                if(descriptionTextarea.style.display === "block") {
+                    descriptionTextarea.style.display = "none";
+                }
+                else {
+                    descriptionTextarea.style.display = "block";
+                }
+                break;
+            }
+
+            case 'make_ai_actor': {
+                let myMessages = await messageHistory.allMessages();
+                const characterId = (event.target.dataset.characterId);
+                const characterIdNoWhitespace = characterId.replace(" ", "");
+                let ai_object = myMessages.find((npc) => npc[0].name == characterId);
+                let imgHolder = (document.getElementById(characterIdNoWhitespace + "-img").src).split(",");
+                ai_object[4] = imgHolder[1];
+
+                /* Grab the actor variables */
+                let npcActor = ai_object[0];
+                let npcBonuses = ai_object[1];
+                // This should be the image thing instead
+                let imgSrc = imgHolder[1];
+                
+                let spellList = [];
+                let nameString = (npcActor.name).replace(/\s+/g, '');
+
+                // npcActor.folder = folder;
+
+                /* Save the image if it exists */
+                if(imgSrc != null) {
+                    let newImg = await aiActor.saveImageToFileSystem(imgSrc, nameString);
+                    npcActor.img = newImg.path;
+                }
+
+                // /* Create an actor */
+                let newActor = await Actor.create(npcActor);
+                let actor = game.actors.get(newActor.id);
+
+                console.log(newActor);
+                console.log(npcBonuses.bonus);
+
+                /* Get items and spells lists */
+                const actionsList = await aiActor.getItemList(npcBonuses.bonus.actions);
+                const armorItemsList = await aiActor.getItemList(npcBonuses.bonus.armor);
+                const itemsList = await aiActor.getItemList(npcBonuses.bonus.items);
+                spellList = await aiActor.getSpellList(npcBonuses.bonus.spells);
+                spellList = aiActor.removeDuplicates(spellList);
+
+                /* Create, add, equip item to actor */
+                aiActor.createEquipItems(actionsList, actor);
+                aiActor.createEquipItems(armorItemsList, actor);
+                aiActor.createEquipItems(itemsList, actor);
+
+                /* Spells equip works a little differently */
+                spellList.forEach(async (element) => {
+                    let spell = await fromUuid(element.uuid);
+                    await actor.createEmbeddedDocuments("Item", [spell]);
+                })
+
+                messageHistory.addMessage(ai_object);
+                break;
+            }
+
+            default: {
+                console.log("button pressed in message history");
+            }
+        }
+    }
+}
+
 class aiActorSettings {
     static ID = "ai-actors";
   
     static SETTINGS = {
-      IMAGE_GEN: "img_gen"
+      IMAGE_GEN: "img_gen",
+      MESSAGE_HIST: "message_history",
+      MESSAGE_HIST_IMG: "message_hist_img"
     };
   
     static TEMPLATES = {
@@ -1099,7 +1380,27 @@ class aiActorSettings {
         config: true,
         hint: `AI-ACTOR.settings.${this.SETTINGS.IMAGE_GEN}.Hint`,
         onChange: () => {}, // Probably don't need this if I can just grab it from game.settings.get. Instead in future this could be a way to let me know something has changed?
-        restricted: false,
+        restricted: true,
+      });
+
+      game.settings.register(this.ID, this.SETTINGS.MESSAGE_HIST, {
+        name: `AI-ACTOR.settings.${this.SETTINGS.MESSAGE_HIST}.Name`,
+        default: 5,
+        type: Number,
+        scope: "world",
+        config: true,
+        hint: `AI-ACTOR.settings.${this.SETTINGS.MESSAGE_HIST}.Hint`,
+        restricted: true,
+      });
+
+      game.settings.register(this.ID, this.SETTINGS.MESSAGE_HIST_IMG, {
+        name: `AI-ACTOR.settings.${this.SETTINGS.MESSAGE_HIST_IMG}.Name`,
+        type: Boolean,
+        default: true,
+        scope: "world",
+        config: true,
+        hint: `AI-ACTOR.settings.${this.SETTINGS.MESSAGE_HIST_IMG}.Hint`,
+        restricted: true
       });
     }
   }
@@ -1108,14 +1409,13 @@ class aiActorSettings {
 Hooks.once('init', () => {
     aiActors.initialize();
     aiActorSettings.initialize();
+    chatGPTMessages.initialize();
 });
 
-Hooks.on("ready", () => {
-
+Hooks.on("ready", async () => {
 });
 
 Hooks.on('renderaiActorConfig', (html) => {
-    let gameFolders = [];
     const folders = html.form.folders;
     const selectFolder = game.i18n.localize('AI-ACTOR.select_folder');
     folders.options.add( new Option(`-- ${selectFolder} --`, "", true, true));
@@ -1129,20 +1429,73 @@ Hooks.on('renderaiActorConfig', (html) => {
 
 // Create AI Actor Button in Actor directory
 Hooks.on('getActorDirectoryEntryContext', (html) => { 
-    console.log(html);
     const directoryHeader = html.find(`[class="header-actions action-buttons flexrow"]`);
 
     const create_actor = game.i18n.localize('AI-ACTOR.create_actor');
-
-    directoryHeader.append(
-        `<button type='button' class='create-ai-actor-button' title='${create_actor}'><i class="fa-solid fa-hat-wizard"></i> ${create_actor}</button>`
-    )
-
-    html.on('click', '.create-ai-actor-button', (event) => {
-        /*const userId = $(event.currentTarget).parents('[data-user-id]')?.data()?.userId;
-        ToDoList.toDoListConfig.render(true, {userId});*/
-        userId = game.userId;
-        aiActors.aiActorsConfig.render(true, {userId});
-    });
+    const msg_hist = game.i18n.localize('AI-ACTOR.msg_hist');
+    if(game.user.isGM) {
+        directoryHeader.append(
+            `<button type='button' class='create-ai-actor-button' title='${create_actor}'><i class="fa-solid fa-hat-wizard"></i> ${create_actor}</button>`
+        )
+    
+        directoryHeader.append(
+            `<button type='button' class='ai-actor-message-history' title='${msg_hist}'><i class="fa-solid fa-message"></i> ${msg_hist}</button>`
+        )
+    
+        html.on('click', '.create-ai-actor-button', (event) => {
+            /*const userId = $(event.currentTarget).parents('[data-user-id]')?.data()?.userId;
+            ToDoList.toDoListConfig.render(true, {userId});*/
+            userId = game.userId;
+            aiActors.aiActorsConfig.render(true, {userId});
+        });
+    
+        html.on('click', '.ai-actor-message-history', (event) => {
+            userId = game.userId;
+            aiActors.viewMsgHist.render(true, {userId});
+        })
+    }
 });
 
+// Chat with ChatGPT for campaign help and ideas
+Hooks.on("chatMessage", async (chatLog, messageText, chatData) => {
+    // Only the GM can use ChatGPT
+    let user = game.users.get(chatData.user);
+    console.log("Messages", chatGPTMessages.gptMessages.getMessages());
+    
+    // Split the message text by spaces to parse the command and arguments
+    const parts = messageText.trim().split(" ");
+    const command = parts.shift();
+    const argsString = parts.join(" ");
+    
+    if (command === "!gpt") {
+        if(user.role === CONST.USER_ROLES.GAMEMASTER) {
+            // Prevent the default chat message behavior
+            chatData.type = CONST.CHAT_MESSAGE_TYPES.WHISPER;
+            chatData.whisper = ChatMessage.getWhisperRecipients("GM");
+
+            // Create Message History
+            let userMessage = {"role": "user", "content": `${argsString}` };
+            chatGPTMessages.gptMessages.addMessage(userMessage);
+    
+            // Call ChatGPT
+            const message = await llmLib.callChat(chatGPTMessages.gptMessages.getMessages());
+            console.log("ChatGPT Message:", message);
+            let newAssistantMessage = {"role": "assistant", "content": `${message}`};
+            chatGPTMessages.gptMessages.addMessage(newAssistantMessage);
+            const formattedMessage = message.replace(/\n/g, '<br>');
+            console.log("After sent Messages", chatGPTMessages.gptMessages.getMessages());
+    
+            // Send a response back to chat
+            ChatMessage.create({
+                content: formattedMessage,
+                whisper: ChatMessage.getWhisperRecipients("GM")
+            });
+    
+            // Return false to prevent the original message from being processed further
+            return false;
+        }
+    }
+
+    // Return true for the Foundry VTT to process the message normally
+    return true;
+});
