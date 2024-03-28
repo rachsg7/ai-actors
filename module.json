@@ -1,13 +1,13 @@
 {
-  "id": "ai-actors-dev",
-  "title": "AI Actors - Dev",
+  "id": "ai-actors",
+  "title": "AI Actors",
   "description": "GM Assistant that creates AI Actors from prompts",
   "authors": [
     {
       "name": "Rachel Schutz"
     }
   ],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "compatibility": {
       "minimum": "10",
       "verified": "11",
@@ -29,7 +29,7 @@
   "relationships": {
       "requires": [
           {
-              "id": "llm-lib-dev",
+              "id": "llm-lib",
               "type": "module"
           }
       ]

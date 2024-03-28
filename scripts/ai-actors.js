@@ -796,6 +796,29 @@ class aiActor {
         return h;
     }
 
+    static getFolderOptions(folders, parentId = null) {
+        let options = [];
+        folders.forEach(folder => {
+            let depthString = "";
+            if(folder.type == 'Actor') {
+                for(let i=1; i < folder.depth; i++) {
+                    depthString += "-- ";
+                }
+                if(folder.children.length > 0 && parentId == null) {
+                    let option = new Option(depthString + folder.name, folder.id);
+                    options.push(option);
+                    let childrenArray = folder.children.map(child => child.folder);
+                    options.push(this.getFolderOptions(childrenArray, folder.id));
+                }
+                else if(parentId != null) {
+                    let option = new Option(depthString + folder.name, folder.id);
+                    options.push(option);
+                }
+            }
+        })
+        return options;
+    }
+
 }
 
 class messageHistory {
@@ -1419,12 +1442,16 @@ Hooks.on('renderaiActorConfig', (html) => {
     const folders = html.form.folders;
     const selectFolder = game.i18n.localize('AI-ACTOR.select_folder');
     folders.options.add( new Option(`-- ${selectFolder} --`, "", true, true));
-    game.folders.forEach(folder => {
-        if(folder.type == 'Actor') {
-            let option = new Option(folder.name, folder.id);
-            folders.options.add(option);
-        }
+    let foldersArray = [...game.folders.values()];
+
+    let options = aiActor.getFolderOptions(foldersArray);
+    let optionsFlat = options.flat(Infinity);
+    let uniqueOptions = Array.from(new Map(optionsFlat.map(option => [option.value, option])).values());
+
+    uniqueOptions.forEach(option => {
+        folders.options.add(option);
     })
+
 });
 
 // Create AI Actor Button in Actor directory
