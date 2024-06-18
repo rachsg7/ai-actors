@@ -10,7 +10,7 @@
   "version": "1.0.1",
   "compatibility": {
       "minimum": "10",
-      "verified": "11"
+      "verified": "12"
   },
   "scripts": [
       "scripts/ai-actors.js"
@@ -30,7 +30,6 @@
       {
           "id": "dnd5e",
           "compatibility": {
-              "maximum": "2.4.1",
               "verified": "2.4.1"
           }
       }
