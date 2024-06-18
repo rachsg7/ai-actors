@@ -1455,31 +1455,38 @@ Hooks.on('renderaiActorConfig', (html) => {
 });
 
 // Create AI Actor Button in Actor directory
-Hooks.on('getActorDirectoryEntryContext', (html) => { 
-    const directoryHeader = html.find(`[class="header-actions action-buttons flexrow"]`);
+Hooks.on('getActorDirectoryEntryContext', (directory) => { 
+    console.log("html1", directory);
+    console.log("element[0]", directory.element[0]);
+    const html = directory.element[0];
+    const directoryHeader = html.querySelector('.header-actions');
+    console.log(directoryHeader);
+    // const directoryHeader = directory.find(`[class="header-actions action-buttons flexrow"]`);
 
     const create_actor = game.i18n.localize('AI-ACTOR.create_actor');
     const msg_hist = game.i18n.localize('AI-ACTOR.msg_hist');
     if(game.user.isGM) {
-        directoryHeader.append(
-            `<button type='button' class='create-ai-actor-button' title='${create_actor}'><i class="fa-solid fa-hat-wizard"></i> ${create_actor}</button>`
-        )
-    
-        directoryHeader.append(
-            `<button type='button' class='ai-actor-message-history' title='${msg_hist}'><i class="fa-solid fa-message"></i> ${msg_hist}</button>`
-        )
-    
-        html.on('click', '.create-ai-actor-button', (event) => {
-            /*const userId = $(event.currentTarget).parents('[data-user-id]')?.data()?.userId;
-            ToDoList.toDoListConfig.render(true, {userId});*/
+        // Create AI Actor button
+        const aiActorButton = document.createElement('button');
+        aiActorButton.className = 'create-ai-actor-button';
+        aiActorButton.title = `${create_actor}`;
+        aiActorButton.innerHTML = `<i class="fa-solid fa-hat-wizard"></i> ${create_actor}`;
+        aiActorButton.onclick = () => {
             userId = game.userId;
             aiActors.aiActorsConfig.render(true, {userId});
-        });
-    
-        html.on('click', '.ai-actor-message-history', (event) => {
+        }
+        directoryHeader.append(aiActorButton);
+
+        // Create Message History button
+        const messageHistoryButton = document.createElement('button');
+        messageHistoryButton.className = 'ai-actor-message-history';
+        messageHistoryButton.title = `${msg_hist}`;
+        messageHistoryButton.innerHTML = `<i class="fa-solid fa-message"></i> ${msg_hist}`;
+        messageHistoryButton.onclick = () => {
             userId = game.userId;
             aiActors.viewMsgHist.render(true, {userId});
-        })
+        }
+        directoryHeader.append(messageHistoryButton);
     }
 });
 
