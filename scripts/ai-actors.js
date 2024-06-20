@@ -798,19 +798,24 @@ class aiActor {
 
     static getFolderOptions(folders, parentId = null) {
         let options = [];
+        console.log("folders:", folders);
         folders.forEach(folder => {
             let depthString = "";
             if(folder.type == 'Actor') {
                 for(let i=1; i < folder.depth; i++) {
                     depthString += "-- ";
                 }
-                if(folder.children.length > 0 && parentId == null) {
+                if(folder.children.length > 0) {
                     let option = new Option(depthString + folder.name, folder.id);
                     options.push(option);
                     let childrenArray = folder.children.map(child => child.folder);
                     options.push(this.getFolderOptions(childrenArray, folder.id));
                 }
                 else if(parentId != null) {
+                    let option = new Option(depthString + folder.name, folder.id);
+                    options.push(option);
+                }
+                else if(folder.children.length == 0 && parentId == null && folder.depth == 1) {
                     let option = new Option(depthString + folder.name, folder.id);
                     options.push(option);
                 }
