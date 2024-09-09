@@ -1509,8 +1509,9 @@ Hooks.on("chatMessage", async (chatLog, messageText, chatData) => {
     if (command === "!gpt") {
         if(user.role === CONST.USER_ROLES.GAMEMASTER) {
             // Prevent the default chat message behavior
-            chatData.type = CONST.CHAT_MESSAGE_TYPES.WHISPER;
-            chatData.whisper = ChatMessage.getWhisperRecipients("GM");
+            chatData = {
+                whisper: CONST.USER_ROLES.GAMEMASTER
+            }
 
             // Create Message History
             let userMessage = {"role": "user", "content": `${argsString}` };
